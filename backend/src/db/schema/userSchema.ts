@@ -1,0 +1,23 @@
+import {
+  boolean,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: varchar("email", { length: 255 }).unique().notNull(),
+  password: varchar("password", { length: 255 }).notNull(),
+  role: varchar("role", { enum: ["admin", "user"] })
+    .default("user")
+    .notNull(),
+  isVerified: boolean("is_verified").default(false).notNull(),
+  refreshToken: varchar("refresh_token").default(""),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
