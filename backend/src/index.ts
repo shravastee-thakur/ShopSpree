@@ -2,6 +2,8 @@ import { env } from "./config/env.js";
 import express from "express";
 import cors from "cors";
 import cookiePraser from "cookie-parser";
+import { errorHandler } from "./middleware/errorMiddleware.js";
+import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
 
@@ -14,6 +16,11 @@ app.use(
   }),
 );
 app.use(cookiePraser());
+
+app.use("/api/v1/users", userRoutes);
+// http://localhost:3000//api/v1/users/register
+
+app.use(errorHandler);
 
 const PORT = env.PORT;
 app.listen(PORT, () => {
