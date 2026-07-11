@@ -1,0 +1,1 @@
+ALTER TABLE "products" ALTER COLUMN "images" SET DEFAULT '{"url":"","publicId":""}'::jsonb;

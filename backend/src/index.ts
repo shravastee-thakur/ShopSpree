@@ -4,6 +4,7 @@ import cors from "cors";
 import cookiePraser from "cookie-parser";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import userRoutes from "./routes/userRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
 
 const app = express();
 
@@ -18,7 +19,10 @@ app.use(
 app.use(cookiePraser());
 
 app.use("/api/v1/users", userRoutes);
-// http://localhost:3000//api/v1/users/register
+// http://localhost:3000/api/v1/users/register
+
+app.use("/api/v1/products", productRoutes);
+// http://localhost:3000/api/v1/products/
 
 app.use(errorHandler);
 

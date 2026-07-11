@@ -15,7 +15,7 @@ if (!accessSecret) {
 }
 
 export const generateAccessToken = (payload: TokenPayload): string => {
-  return jwt.sign(payload, accessSecret, { expiresIn: "15m" });
+  return jwt.sign(payload, accessSecret, { expiresIn: "7d" });
 };
 
 const refreshSecret = env.REFRESH_SECRET;
