@@ -36,7 +36,3 @@ export const productQuerySchema = z.object({
   minPrice: z.coerce.number().int().min(0).optional(),
   maxPrice: z.coerce.number().int().min(0).optional(),
 });
-
-export type CreateProductInput = z.infer<typeof createProductSchema>;
-export type UpdateProductInput = z.infer<typeof updateProductSchema>;
-export type ProductQueryInput = z.infer<typeof productQuerySchema>;
