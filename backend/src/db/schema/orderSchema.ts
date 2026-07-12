@@ -1,0 +1,50 @@
+import {
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+import { users } from "./userSchema.js";
+import { relations } from "drizzle-orm";
+import { orderItems } from "./orderItemsSchema.js";
+
+export type OrderStatus =
+  | "pending"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
+
+export const orders = pgTable("orders", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  totalAmount: integer("total_amount").notNull(),
+  status: varchar("status", {
+    length: 20,
+    enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
+  }).default("pending"),
+  shippingAddress: text("shipping_address").notNull(),
+  paymentStatus: varchar("payment_status", {
+    length: 20,
+    enum: ["pending", "completed", "failed", "refunded"],
+  })
+    .default("pending")
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+export const orderRelations = relations(orders, ({ one, many }) => ({
+  user: one(users, {
+    fields: [orders.id],
+    references: [users.id],
+  }),
+  items: many(orderItems),
+}));
