@@ -5,6 +5,7 @@ import cookiePraser from "cookie-parser";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import userRoutes from "./routes/userRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
 
 const app = express();
 
@@ -23,6 +24,9 @@ app.use("/api/v1/users", userRoutes);
 
 app.use("/api/v1/products", productRoutes);
 // http://localhost:3000/api/v1/products/
+
+app.use("/api/v1/orders", orderRoutes);
+// http://localhost:3000/api/v1/orders/
 
 app.use(errorHandler);
 

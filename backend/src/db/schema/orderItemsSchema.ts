@@ -10,7 +10,7 @@ import { orders } from "./orderSchema.js";
 import { relations } from "drizzle-orm";
 import { type CloudinaryImage, products } from "./productSchema.js";
 
-export const orderItems = pgTable("orderItems", {
+export const orderItems = pgTable("order_items", {
   id: uuid("id").defaultRandom().primaryKey(),
   orderId: uuid("order_id")
     .notNull()
@@ -25,12 +25,11 @@ export const orderItems = pgTable("orderItems", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const orederItemsRelations = relations(orderItems, ({ one }) => ({
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   order: one(orders, {
-    fields: [orderItems.id],
+    fields: [orderItems.orderId],
     references: [orders.id],
   }),
-
   product: one(products, {
     fields: [orderItems.productId],
     references: [products.id],
