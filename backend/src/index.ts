@@ -6,6 +6,7 @@ import { errorHandler } from "./middleware/errorMiddleware.js";
 import userRoutes from "./routes/userRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
 
 const app = express();
 
@@ -27,6 +28,9 @@ app.use("/api/v1/products", productRoutes);
 
 app.use("/api/v1/orders", orderRoutes);
 // http://localhost:3000/api/v1/orders/
+
+app.use("/api/v1/reviews", reviewRoutes);
+// http://localhost:3000/api/v1/reviews/
 
 app.use(errorHandler);
 

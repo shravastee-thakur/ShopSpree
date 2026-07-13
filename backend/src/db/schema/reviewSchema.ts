@@ -28,14 +28,9 @@ export const reviews = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => {
-    return {
-      uniqueProductUserIndex: uniqueIndex("unique_product_user_idx").on(
-        table.productId,
-        table.userId,
-      ),
-    };
-  },
+  (table) => [
+    uniqueIndex("unique_product_user_idx").on(table.productId, table.userId),
+  ],
 );
 
 export const reviewsRelations = relations(reviews, ({ one }) => ({
