@@ -9,6 +9,8 @@ import {
 import { users } from "./userSchema.js";
 import { relations } from "drizzle-orm";
 import { orderItems } from "./orderItemsSchema.js";
+import { shippingInfo } from "./shippingInfoSchema.js";
+import { payments } from "./paymentSchema.js";
 
 export type OrderStatus =
   | "pending"
@@ -27,13 +29,6 @@ export const orders = pgTable("orders", {
     length: 20,
     enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
   }).default("pending"),
-  shippingAddress: text("shipping_address").notNull(),
-  paymentStatus: varchar("payment_status", {
-    length: 20,
-    enum: ["pending", "completed", "failed", "refunded"],
-  })
-    .default("pending")
-    .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -47,4 +42,6 @@ export const orderRelations = relations(orders, ({ one, many }) => ({
     references: [users.id],
   }),
   items: many(orderItems),
+  shipping: one(shippingInfo),
+  payment: one(payments),
 }));
