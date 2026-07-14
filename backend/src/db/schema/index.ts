@@ -5,3 +5,4 @@ export * from "./orderItemsSchema.js";
 export * from "./reviewSchema.js";
 export * from "./shippingInfoSchema.js";
 export * from "./paymentSchema.js";
+export * from "./cartSchema.js";

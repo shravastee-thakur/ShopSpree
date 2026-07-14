@@ -18,9 +18,8 @@ export const createOrder = async (
   next: NextFunction,
 ) => {
   try {
-    const validatedData = createOrderSchema.parse(req.body);
+    const { items, shipping } = createOrderSchema.parse(req.body);
 
-    const { items, shipping } = validatedData;
     const userId = req.user?.id as string;
 
     const productIds = items.map((item) => item.productId);
@@ -168,9 +167,7 @@ export const updateOrderStatus = async (
 ) => {
   try {
     const orderId = req.params.id as string;
-    const parsedBody = updateOrderStatusSchema.parse(req.body);
-
-    const { status } = parsedBody;
+    const { status } = updateOrderStatusSchema.parse(req.body);
 
     const [existingOrder] = await db
       .select()

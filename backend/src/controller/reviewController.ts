@@ -27,9 +27,8 @@ export const upsertReview = async (
   next: NextFunction,
 ) => {
   try {
-    const parsedBody = createReviewSchema.parse(req.body);
+    const { productId, rating, comment } = createReviewSchema.parse(req.body);
 
-    const { productId, rating, comment } = parsedBody;
     const userId = req.user?.id as string;
 
     const [review] = await db

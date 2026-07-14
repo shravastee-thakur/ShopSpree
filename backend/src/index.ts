@@ -3,10 +3,12 @@ import express from "express";
 import cors from "cors";
 import cookiePraser from "cookie-parser";
 import { errorHandler } from "./middleware/errorMiddleware.js";
+
 import userRoutes from "./routes/userRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js";
 
 const app = express();
 
@@ -31,6 +33,9 @@ app.use("/api/v1/orders", orderRoutes);
 
 app.use("/api/v1/reviews", reviewRoutes);
 // http://localhost:3000/api/v1/reviews/
+
+app.use("/api/v1/cart", cartRoutes);
+// http://localhost:3000/api/v1/cart/
 
 app.use(errorHandler);
 

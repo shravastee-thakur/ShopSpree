@@ -26,9 +26,8 @@ export const createProduct = async (
       throw new ApiError(401, "Unauthorized: User ID not found");
     }
 
-    const validatedData = createProductSchema.parse(req.body);
-
-    const { name, description, price, category, stock } = validatedData;
+    const { name, description, price, category, stock } =
+      createProductSchema.parse(req.body);
 
     const cloudinaryResult = await uploadImageToCloudinary(req.file.buffer);
 
