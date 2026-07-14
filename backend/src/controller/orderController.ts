@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import e, { Request, Response, NextFunction } from "express";
 import { db } from "../db/index.js";
 import { and, desc, eq } from "drizzle-orm";
 import { ApiError } from "../utils/apiError.js";
@@ -9,6 +9,8 @@ import {
 import { products } from "../db/schema/productSchema.js";
 import { orders } from "../db/schema/orderSchema.js";
 import { orderItems } from "../db/schema/orderItemsSchema.js";
+import { shippingInfo } from "../db/schema/shippingInfoSchema.js";
+import { payments } from "../db/schema/paymentSchema.js";
 
 export const createOrder = async (
   req: Request,
@@ -18,7 +20,7 @@ export const createOrder = async (
   try {
     const validatedData = createOrderSchema.parse(req.body);
 
-    const { items, shippingAddress } = validatedData;
+    const { items, shipping } = validatedData;
     const userId = req.user?.id as string;
 
     const productIds = items.map((item) => item.productId);
@@ -32,6 +34,7 @@ export const createOrder = async (
       throw new ApiError(400, "One or more products not found");
     }
 
+    let totalAmount = 0;
     for (const item of items) {
       const product = productList.find((p) => p.id === item.productId);
       if (!product) {
@@ -43,22 +46,8 @@ export const createOrder = async (
           `Insufficient stock for ${product.name}. Available: ${product.stock}`,
         );
       }
+      totalAmount += product.price * item.quantity;
     }
-
-    let totalAmount = 0;
-    const orderItemsData = items.map((item) => {
-      const product = productList.find((p) => p.id === item.productId)!;
-      const itemTotal = product.price * item.quantity;
-      totalAmount += itemTotal;
-
-      return {
-        productId: product.id,
-        quantity: item.quantity,
-        price: product.price,
-        image: product.image,
-        title: product.name,
-      };
-    });
 
     const [newOrder] = await db.transaction(async (tx) => {
       const [order] = await tx
@@ -66,16 +55,32 @@ export const createOrder = async (
         .values({
           userId,
           totalAmount,
-          shippingAddress,
         })
         .returning();
 
-      const orderItemsWithOrderId = orderItemsData.map((item) => ({
-        ...item,
-        orderId: order.id,
-      }));
+      await tx.insert(orderItems).values(
+        items.map((item) => {
+          const product = productList.find((p) => p.id === item.productId)!;
+          return {
+            orderId: order.id,
+            productId: product.id,
+            quantity: item.quantity,
+            price: product.price,
+            image: product.image,
+            title: product.name,
+          };
+        }),
+      );
 
-      await tx.insert(orderItems).values(orderItemsWithOrderId);
+      await tx.insert(shippingInfo).values({
+        orderId: order.id,
+        ...shipping,
+      });
+
+      await tx.insert(payments).values({
+        orderId: order.id,
+        paymentStatus: "Pending",
+      });
 
       for (const item of items) {
         const product = productList.find((p) => p.id === item.productId)!;
@@ -104,13 +109,17 @@ export const getUserOrders = async (
   next: NextFunction,
 ) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user?.id as string;
 
-    const userOrders = await db
-      .select()
-      .from(orders)
-      .where(eq(orders.userId, userId))
-      .orderBy(desc(orders.createdAt));
+    const userOrders = await db.query.orders.findMany({
+      where: eq(orders.userId, userId),
+      orderBy: (orders, { desc }) => [desc(orders.createdAt)],
+      with: {
+        items: true,
+        shipping: true,
+        payment: true,
+      },
+    });
 
     res.status(200).json({
       success: true,
@@ -128,34 +137,24 @@ export const getOrderById = async (
 ) => {
   try {
     const orderId = req.params.id as string;
-    const userId = req.user!.id;
-    const userRole = req.user!.role;
+    const userId = req.user?.id as string;
 
-    const [order] = await db
-      .select()
-      .from(orders)
-      .where(eq(orders.id, orderId))
-      .limit(1);
+    const order = await db.query.orders.findFirst({
+      where: eq(orders.id, orderId),
+      with: {
+        items: true,
+        shipping: true,
+        payment: true,
+      },
+    });
 
     if (!order) {
       throw new ApiError(404, "Order not found");
     }
 
-    if (order.userId !== userId && userRole !== "admin") {
-      throw new ApiError(403, "You are not authorized to view this order");
-    }
-
-    const items = await db
-      .select()
-      .from(orderItems)
-      .where(eq(orderItems.orderId, orderId));
-
     res.status(200).json({
       success: true,
-      data: {
-        ...order,
-        items,
-      },
+      data: order,
     });
   } catch (error) {
     next(error);
