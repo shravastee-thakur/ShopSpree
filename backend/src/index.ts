@@ -9,6 +9,7 @@ import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 const app = express();
 
@@ -36,6 +37,9 @@ app.use("/api/v1/reviews", reviewRoutes);
 
 app.use("/api/v1/cart", cartRoutes);
 // http://localhost:3000/api/v1/cart/
+
+app.use("/api/v1/payments", paymentRoutes);
+// http://localhost:3000/api/v1/payments/create-session
 
 app.use(errorHandler);
 
