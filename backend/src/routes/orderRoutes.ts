@@ -5,7 +5,7 @@ import { allowRole } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 
-router.post("/", authenticate, orderController.createOrder);
+router.post("/checkout", authenticate, orderController.checkoutFromCart);
 router.get("/", authenticate, orderController.getUserOrders);
 router.get("/:id", authenticate, orderController.getOrderById);
 router.put(

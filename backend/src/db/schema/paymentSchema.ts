@@ -7,6 +7,10 @@ export const payments = pgTable("payments", {
   orderId: uuid("order_id")
     .notNull()
     .references(() => orders.id, { onDelete: "cascade" }),
+  paymentType: varchar("payment_type", {
+    length: 20,
+    enum: ["Online"],
+  }).notNull(),
   paymentStatus: varchar("payment_status", {
     length: 20,
     enum: ["Paid", "Pending", "Failed"],

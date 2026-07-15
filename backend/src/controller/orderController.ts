@@ -1,9 +1,9 @@
-import e, { Request, Response, NextFunction } from "express";
+import { eq, inArray } from "drizzle-orm";
+import { Request, Response, NextFunction } from "express";
 import { db } from "../db/index.js";
-import { and, desc, eq } from "drizzle-orm";
 import { ApiError } from "../utils/apiError.js";
 import {
-  createOrderSchema,
+  checkoutFromCartSchema,
   updateOrderStatusSchema,
 } from "../validators/orderValidator.js";
 import { products } from "../db/schema/productSchema.js";
@@ -11,64 +11,74 @@ import { orders } from "../db/schema/orderSchema.js";
 import { orderItems } from "../db/schema/orderItemsSchema.js";
 import { shippingInfo } from "../db/schema/shippingInfoSchema.js";
 import { payments } from "../db/schema/paymentSchema.js";
+import { cartItems } from "../db/schema/cartSchema.js";
 
-export const createOrder = async (
+export const checkoutFromCart = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { items, shipping } = createOrderSchema.parse(req.body);
-
+    const { shipping } = checkoutFromCartSchema.parse(req.body);
     const userId = req.user?.id as string;
 
-    const productIds = items.map((item) => item.productId);
+    const newOrder = await db.transaction(async (tx) => {
+      const cart = await tx
+        .select()
+        .from(cartItems)
+        .where(eq(cartItems.userId, userId));
 
-    const productList = await db
-      .select()
-      .from(products)
-      .where(and(...productIds.map((id) => eq(products.id, id))));
-
-    if (productList.length !== items.length) {
-      throw new ApiError(400, "One or more products not found");
-    }
-
-    let totalAmount = 0;
-    for (const item of items) {
-      const product = productList.find((p) => p.id === item.productId);
-      if (!product) {
-        throw new ApiError(400, `Product ${item.productId} not found`);
+      if (cart.length === 0) {
+        throw new ApiError(400, "Your cart is empty");
       }
-      if (product.stock < item.quantity) {
+
+      const productIds = cart.map((item) => item.productId);
+
+      const lockedProducts = await tx
+        .select()
+        .from(products)
+        .where(inArray(products.id, productIds))
+        .for("update");
+
+      if (lockedProducts.length !== productIds.length) {
         throw new ApiError(
           400,
-          `Insufficient stock for ${product.name}. Available: ${product.stock}`,
+          "One or more products in your cart are no longer available",
         );
       }
-      totalAmount += product.price * item.quantity;
-    }
 
-    const [newOrder] = await db.transaction(async (tx) => {
+      let totalAmount = 0;
+      const orderItemsData = cart.map((item) => {
+        const product = lockedProducts.find((p) => p.id === item.productId)!;
+
+        if (product.stock < item.quantity) {
+          throw new ApiError(
+            400,
+            `Insufficient stock for ${product.name}. Only ${product.stock} available.`,
+          );
+        }
+
+        totalAmount += product.price * item.quantity;
+
+        return {
+          productId: product.id,
+          quantity: item.quantity,
+          price: product.price,
+          image: product.image,
+          title: product.name,
+        };
+      });
+
       const [order] = await tx
         .insert(orders)
-        .values({
-          userId,
-          totalAmount,
-        })
+        .values({ userId, totalAmount })
         .returning();
 
       await tx.insert(orderItems).values(
-        items.map((item) => {
-          const product = productList.find((p) => p.id === item.productId)!;
-          return {
-            orderId: order.id,
-            productId: product.id,
-            quantity: item.quantity,
-            price: product.price,
-            image: product.image,
-            title: product.name,
-          };
-        }),
+        orderItemsData.map((item) => ({
+          ...item,
+          orderId: order.id,
+        })),
       );
 
       await tx.insert(shippingInfo).values({
@@ -78,24 +88,29 @@ export const createOrder = async (
 
       await tx.insert(payments).values({
         orderId: order.id,
+        paymentType: "Online",
         paymentStatus: "Pending",
       });
 
-      for (const item of items) {
-        const product = productList.find((p) => p.id === item.productId)!;
+      for (const item of cart) {
+        const product = lockedProducts.find((p) => p.id === item.productId)!;
         await tx
           .update(products)
           .set({ stock: product.stock - item.quantity })
           .where(eq(products.id, item.productId));
       }
 
-      return [order];
+      await tx.delete(cartItems).where(eq(cartItems.userId, userId));
+
+      return order;
     });
 
     res.status(201).json({
       success: true,
-      message: "Order placed successfully",
-      data: newOrder,
+      message: "Checkout initiated successfully. Proceed to payment.",
+      data: {
+        orderId: newOrder.id,
+      },
     });
   } catch (error) {
     next(error);
@@ -137,6 +152,7 @@ export const getOrderById = async (
   try {
     const orderId = req.params.id as string;
     const userId = req.user?.id as string;
+    const userRole = req.user?.role as string;
 
     const order = await db.query.orders.findFirst({
       where: eq(orders.id, orderId),
@@ -149,6 +165,10 @@ export const getOrderById = async (
 
     if (!order) {
       throw new ApiError(404, "Order not found");
+    }
+
+    if (order.userId !== userId && userRole !== "admin") {
+      throw new ApiError(403, "You are not authorized to view this order");
     }
 
     res.status(200).json({
