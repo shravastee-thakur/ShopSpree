@@ -28,7 +28,9 @@ export const orders = pgTable("orders", {
   status: varchar("status", {
     length: 20,
     enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
-  }).default("pending"),
+  })
+    .default("pending")
+    .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

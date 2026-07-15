@@ -1,11 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db/index.js";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { reviews } from "../db/schema/reviewSchema.js";
 import { products } from "../db/schema/productSchema.js";
 import { createReviewSchema } from "../validators/reviewValidator.js";
 import { ApiError } from "../utils/apiError.js";
 import { users } from "../db/schema/userSchema.js";
+import { orders } from "../db/schema/orderSchema.js";
+import { orderItems } from "../db/schema/orderItemsSchema.js";
+import { payments } from "../db/schema/paymentSchema.js";
 
 async function recalculateProductRating(productId: string) {
   const [avgResult] = await db
@@ -30,6 +33,26 @@ export const upsertReview = async (
     const { productId, rating, comment } = createReviewSchema.parse(req.body);
 
     const userId = req.user?.id as string;
+
+    const [purchasedOrder] = await db
+      .select({ orderId: orders.id })
+      .from(orders)
+      .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
+      .innerJoin(payments, eq(orders.id, payments.orderId))
+      .where(
+        and(
+          eq(orders.userId, userId),
+          eq(orderItems.productId, productId),
+          eq(payments.paymentStatus, "Paid"),
+        ),
+      )
+      .limit(1);
+    if (!purchasedOrder) {
+      throw new ApiError(
+        403,
+        "You can only review products you have purchased",
+      );
+    }
 
     const [review] = await db
       .insert(reviews)

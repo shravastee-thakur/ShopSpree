@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db/index.js";
-import { sql } from "drizzle-orm";
+import { desc, eq, lte, sql } from "drizzle-orm";
 import { orders } from "../db/schema/orderSchema.js";
 import { products } from "../db/schema/productSchema.js";
 import { users } from "../db/schema/userSchema.js";
+import { payments } from "../db/schema/paymentSchema.js";
+import { orderItems } from "../db/schema/orderItemsSchema.js";
 
 export const getDashboardStats = async (
   req: Request,
@@ -11,28 +13,88 @@ export const getDashboardStats = async (
   next: NextFunction,
 ) => {
   try {
-    const [orderStats] = await db
+    const [revenueResult] = await db
       .select({
-        totalOrders: sql<number>`count(*)`,
-        totalRevenue: sql<number>`coalesce(sum($(orders.totalAmount)), 0)`,
+        total: sql<number>`coalesce(sum(${orders.totalAmount}), 0)`,
       })
-      .from(orders);
+      .from(orders)
+      .innerJoin(payments, eq(orders.id, payments.orderId))
+      .where(eq(payments.paymentStatus, "Paid"));
+
+    const totalRevenueAllTime = Number(revenueResult.total);
 
     const [userStats] = await db
-      .select({ totalUsers: sql<number>`count(*)` })
-      .from(users);
+      .select({ totalUsers: sql<number>`count(*)::int` })
+      .from(users)
+      .where(eq(users.role, "user"));
 
-    const [productStats] = await db
-      .select({ totalProducts: sql<number>`count(*)` })
-      .from(products);
+    const totalUsersCount = Number(userStats.totalUsers);
+
+    const orderStatusCountsRaw = await db
+      .select({
+        status: orders.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(orders)
+      .innerJoin(payments, eq(orders.id, payments.orderId))
+      .where(eq(payments.paymentStatus, "Paid"))
+      .groupBy(orders.status);
+
+    const orderStatusCount = {
+      pending: 0,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0,
+    };
+
+    orderStatusCountsRaw.forEach((row) => {
+      if (row.status && row.status in orderStatusCount) {
+        orderStatusCount[row.status as keyof typeof orderStatusCount] = Number(
+          row.count,
+        );
+      }
+    });
+
+    const lowStockProducts = await db
+      .select({
+        name: products.name,
+        stock: products.stock,
+      })
+      .from(products)
+      .where(lte(products.stock, 5));
+
+    const topSellingProducts = await db
+      .select({
+        name: products.name,
+        category: products.category,
+        rating: products.ratings,
+        image: sql<string>`${products.image}->>'url'`,
+        totalSold: sql<number>`coalesce(sum(${orderItems.quantity}), 0)::int`,
+      })
+      .from(orderItems)
+      .innerJoin(products, eq(orderItems.productId, products.id))
+      .innerJoin(orders, eq(orderItems.orderId, orders.id))
+      .innerJoin(payments, eq(orders.id, payments.orderId))
+      .where(eq(payments.paymentStatus, "Paid"))
+      .groupBy(
+        products.id,
+        products.name,
+        products.category,
+        products.ratings,
+        products.image,
+      )
+      .orderBy(desc(sql`sum(${orderItems.quantity})`))
+      .limit(5);
 
     res.status(200).json({
       success: true,
       data: {
-        totalOrders: Number(orderStats.totalOrders),
-        totalRevenue: Number(orderStats.totalRevenue),
-        totalUsers: Number(userStats.totalUsers),
-        totalProducts: Number(productStats.totalProducts),
+        totalRevenueAllTime,
+        totalUsersCount,
+        orderStatusCount,
+        lowStockProducts,
+        topSellingProducts,
       },
     });
   } catch (error) {
