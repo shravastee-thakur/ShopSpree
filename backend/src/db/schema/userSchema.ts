@@ -1,4 +1,10 @@
-import { pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -8,6 +14,7 @@ export const users = pgTable("users", {
   role: varchar("role", { enum: ["admin", "user"] })
     .default("user")
     .notNull(),
+  isVerified: boolean("is_verified").default(false).notNull(),
   refreshToken: varchar("refresh_token"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")

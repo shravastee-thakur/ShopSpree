@@ -16,6 +16,9 @@ import {
   registerSchema,
   loginSchema,
 } from "../validators/authValidator.js";
+import crypto from "crypto";
+import { consumeOtp, saveOtp } from "../utils/otp.js";
+import { sendMail } from "../utils/email.js";
 
 export const register = async (
   req: Request<{}, {}, RegisterInput>,
@@ -57,13 +60,21 @@ export const register = async (
   }
 };
 
-export const login = async (
-  req: Request<{}, {}, LoginInput>,
+export const generateOtp = (): string => {
+  return String(crypto.randomInt(100000, 999999));
+};
+
+export function hashOtp(otp: string): string {
+  return crypto.createHmac("sha256", env.HMAC_SECRET).update(otp).digest("hex");
+}
+
+export const initiateLogin = async (
+  req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { email, password } = loginSchema.parse(req.body);
+    const { email, password } = req.body;
 
     const [existingUser] = await db
       .select()
@@ -72,15 +83,86 @@ export const login = async (
       .limit(1);
 
     if (!existingUser) {
-      throw new ApiError(401, "Invalid credentials");
+      throw new ApiError(404, "No account found with this email");
     }
 
     const isPasswordValid = await bcrypt.compare(
       password,
       existingUser.password,
     );
+
     if (!isPasswordValid) {
-      throw new ApiError(401, "Invalid credentials");
+      throw new ApiError(401, "Invalid email or password");
+    }
+
+    const otp = generateOtp();
+    const hashedOtp = hashOtp(otp);
+
+    await saveOtp(email, hashedOtp);
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
+        <h2 style="color: #333;">Your Verification Code</h2>
+        <p style="color: #555;">Use the following OTP to log in to your account. This code is valid for 5 minutes.</p>
+        <div style="background-color: #f9f9f9; padding: 15px; text-align: center; border-radius: 4px; margin: 20px 0;">
+          <h1 style="color: #2563eb; letter-spacing: 8px; margin: 0;">${otp}</h1>
+        </div>
+        <p style="color: #888; font-size: 12px;">If you did not request this code, please ignore this email or contact support if you suspect unauthorized activity.</p>
+      </div>
+    `;
+
+    await sendMail(email, "Your Login OTP", htmlContent);
+
+    res.status(200).json({
+      success: true,
+      message: "OTP sent to your email",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyOtp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      throw new ApiError(400, "Email and OTP are required");
+    }
+
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (!existingUser) {
+      throw new ApiError(404, "No account found with this email");
+    }
+
+    const hashedInput = hashOtp(otp);
+    const result = await consumeOtp(email, hashedInput);
+
+    if (result === -1) {
+      throw new ApiError(
+        429,
+        "Too many failed attempts. Please request a new OTP",
+      );
+    }
+
+    if (result === 0) {
+      throw new ApiError(401, "Invalid or expired OTP");
+    }
+
+    if (!existingUser.isVerified) {
+      await db
+        .update(users)
+        .set({ isVerified: true })
+        .where(eq(users.id, existingUser.id));
     }
 
     const accessToken = generateAccessToken({
@@ -115,6 +197,7 @@ export const login = async (
             name: existingUser.name,
             email: existingUser.email,
             role: existingUser.role,
+            isVerified: true,
           },
           accessToken,
         },

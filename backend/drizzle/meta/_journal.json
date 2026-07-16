@@ -78,6 +78,20 @@
       "when": 1784106240299,
       "tag": "0010_first_mimic",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1784192525499,
+      "tag": "0011_amazing_calypso",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1784196134036,
+      "tag": "0012_fuzzy_eternals",
+      "breakpoints": true
     }
   ]
 }

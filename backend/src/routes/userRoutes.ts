@@ -5,7 +5,8 @@ import { authenticate } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 router.post("/register", userController.register);
-router.post("/login", userController.login);
+router.post("/initiate-login", userController.initiateLogin);
+router.post("/verify", userController.verifyOtp);
 router.post("/refresh", userController.refreshTokenHandler);
 router.post("/logout", authenticate, userController.logout);
 

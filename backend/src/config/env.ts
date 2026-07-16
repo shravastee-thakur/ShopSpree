@@ -10,17 +10,16 @@ const envSchema = z.object({
     .enum(["development", "production", "test"])
     .default("development"),
 
-  //   HMAC_SECRET: z.string().min(10, "HMAC_SECRET is required and must be secure"),
+  HMAC_SECRET: z.string().min(10, "HMAC_SECRET is required and must be secure"),
   FRONTEND_URL: z.string().url("FRONTEND_URL must be a valid URL"),
 
   ACCESS_SECRET: z.string().min(1),
   REFRESH_SECRET: z.string().min(1),
 
-  //   IOREDIS_URL: z.string().url("IOREDIS_URL must be a valid URL"),
+  IOREDIS_URL: z.string().url("IOREDIS_URL must be a valid URL"),
 
-  //   BREVO_API_KEY: z.string().min(1),
-  //   SENDER_EMAIL: z.string().email("SENDER_EMAIL must be a valid email address"),
-  //   ARCJET_KEY: z.string().min(1),
+  BREVO_API_KEY: z.string().min(1),
+  SENDER_EMAIL: z.string().email("SENDER_EMAIL must be a valid email address"),
 
   CLOUDINARY_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),
