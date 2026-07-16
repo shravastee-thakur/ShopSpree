@@ -1,15 +1,19 @@
-import Features from "./components/Features";
-import Hero from "./components/Hero";
-import Navbar from "./components/Navbar";
-import Trending from "./components/Trending";
+import { Route, Routes } from "react-router-dom";
+import MainLayout from "./components/MainLayout";
+import Home from "./pages/Home";
+
+import Register from "./pages/Register";
 
 const App = () => {
   return (
     <div>
-      <Navbar />
-      <Hero />
-      <Features />
-      <Trending />
+      <Routes>
+        <Route path="/register" element={<Register />} />
+
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+        </Route>
+      </Routes>
     </div>
   );
 };

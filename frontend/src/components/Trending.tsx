@@ -43,7 +43,7 @@ const TrendingProducts = [
 
 const Trending: React.FC = () => {
   return (
-    <div className="pt-4 pb-8 px-4">
+    <div className="pt-4 pb-8 px-4 bg-gray-200">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6">
           Trending Products

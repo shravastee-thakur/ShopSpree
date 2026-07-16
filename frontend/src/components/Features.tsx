@@ -1,58 +1,58 @@
-import { Truck, ShieldCheck, Headset } from "lucide-react";
-import { ReactElement } from "react";
+import { Truck, ShieldCheck, Headphones } from "lucide-react";
+import type { ReactNode } from "react";
 
 interface FeatureItem {
-  icon: ReactElement;
+  icon: ReactNode;
   title: string;
   description: string;
-  bgColor: string;
-  iconColor: string;
+  bgClass: string;
+  iconClass: string;
 }
 
-const featuresData: FeatureItem[] = [
+const features: FeatureItem[] = [
   {
     icon: <Truck className="h-6 w-6" />,
     title: "Free Shipping",
     description: "On orders above Rs 500",
-    bgColor: "bg-blue-500/10",
-    iconColor: "text-blue-500",
+    bgClass: "bg-blue-100",
+    iconClass: "text-blue-600",
   },
   {
     icon: <ShieldCheck className="h-6 w-6" />,
     title: "Secure Payment",
     description: "100% secure transactions",
-    bgColor: "bg-green-500/10",
-    iconColor: "text-green-500",
+    bgClass: "bg-green-100",
+    iconClass: "text-green-600",
   },
   {
-    icon: <Headset className="h-6 w-6" />,
+    icon: <Headphones className="h-6 w-6" />,
     title: "24/7 Support",
     description: "Always here to help",
-    bgColor: "bg-purple-500/10",
-    iconColor: "text-purple-500",
+    bgClass: "bg-purple-100",
+    iconClass: "text-purple-600",
   },
 ];
 
 const Features = () => {
   return (
-    <section className="py-16 bg-gray-50 dark:bg-gray-900 transition-colors">
+    <section className="py-12 bg-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {featuresData.map((feature, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {features.map((feature, index) => (
             <div
               key={index}
-              className="flex items-center space-x-4 p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
+              className="flex items-center space-x-4 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
             >
               <div
-                className={`h-12 w-12 ${feature.bgColor} ${feature.iconColor} rounded-full flex items-center justify-center shrink-0`}
+                className={`h-12 w-12 ${feature.bgClass} ${feature.iconClass} rounded-full flex items-center justify-center flex-shrink-0`}
               >
                 {feature.icon}
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                <h3 className="text-base font-semibold text-gray-900">
                   {feature.title}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-sm text-gray-600 mt-1">
                   {feature.description}
                 </p>
               </div>

@@ -1,4 +1,3 @@
-// src/components/Navbar.tsx
 import { useState } from "react";
 import { Search, Menu, X, ShoppingCart } from "lucide-react";
 // import toast from "react-hot-toast";
