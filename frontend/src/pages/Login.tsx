@@ -1,48 +1,38 @@
 import { useState } from "react";
-import type { ChangeEvent, SyntheticEvent } from "react";
+import type { SyntheticEvent } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuthStore } from "../store/authStore";
 import api from "../utils/axiosinstance";
 
-interface FormData {
-  name: string;
-  email: string;
-  password: string;
-}
-
-const Register = () => {
+const Login = () => {
   const navigate = useNavigate();
+  const { setUserEmail } = useAuthStore();
+
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    email: "",
-    password: "",
-  });
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const [email, setEmail] = useState("");
+  const [password, SetPassword] = useState("");
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const res = await api.post(`/api/v1/users/register`, formData, {
-        headers: { "Content-Type": "application/json" },
-        withCredentials: true,
+      const res = await api.post(`/api/v1/users/initiate-login`, {
+        email,
+        password,
       });
+      console.log(res);
 
       if (res.data.success) {
         toast.success(res.data.message, {
           style: { borderRadius: "10px", background: "#F0E76F", color: "#333" },
         });
-        navigate("/login");
+
+        setUserEmail(email);
+        navigate("/verify-otp");
       }
     } catch (err: any) {
       let message = "Something went wrong. Please try again.";
@@ -62,41 +52,18 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-      <button
-        onClick={() => navigate("/")}
-        aria-label="Back to home"
-        className="absolute top-4 left-4 sm:top-6 sm:left-6 p-2 text-slate-800 hover:text-amber-400 hover:bg-slate-800/50 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-950 z-10"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
       <div className="w-full max-w-md">
         <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
           <div className="bg-[#FA812F] p-6 text-white">
             <h2 className="text-2xl font-bold text-center tracking-tight">
-              Create Account
+              Welcome Back
             </h2>
+            <p className="text-center text-orange-100 mt-1 text-sm">
+              Login to your account
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
-            <div>
-              <label
-                htmlFor="name"
-                className="block text-gray-700 text-sm font-medium mb-2"
-              >
-                Full Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FA812F] focus:border-transparent transition"
-                placeholder="John Doe"
-              />
-            </div>
-
             <div>
               <label
                 htmlFor="email"
@@ -108,31 +75,41 @@ const Register = () => {
                 type="email"
                 id="email"
                 name="email"
-                value={formData.email}
-                onChange={handleChange}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FA812F] focus:border-transparent transition"
                 placeholder="john@example.com"
               />
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-gray-700 text-sm font-medium mb-2"
-              >
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="password"
+                  className="block text-gray-700 text-sm font-medium"
+                >
+                  Password
+                </label>
+                <Link
+                  to="/reset-password"
+                  className="text-xs text-gray-500 hover:text-[#FA812F] transition font-medium"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
-                  value={formData.password}
-                  onChange={handleChange}
+                  value={password}
+                  onChange={(e) => SetPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                   className="w-full px-4 py-2.5 pr-11 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FA812F] focus:border-transparent transition"
-                  placeholder="Create a strong password"
+                  placeholder="Enter your password"
                 />
                 <button
                   type="button"
@@ -157,21 +134,21 @@ const Register = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  Creating Account...
+                  Authenticating...
                 </>
               ) : (
-                "Register"
+                "Login"
               )}
             </button>
 
             <div className="text-center pt-2">
               <p className="text-gray-600 text-sm">
-                Already have an account?{" "}
+                Do not have an account?{" "}
                 <Link
-                  to="/login"
+                  to="/register"
                   className="text-[#FA812F] hover:underline font-semibold"
                 >
-                  Login
+                  Register here
                 </Link>
               </p>
             </div>
@@ -182,4 +159,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default Login;
